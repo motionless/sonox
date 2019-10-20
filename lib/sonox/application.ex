@@ -9,6 +9,7 @@ defmodule Sonox.Application do
     children = [
       # Starts a worker by calling: Sonox.Worker.start_link(arg)
       # {Sonox.Worker, arg}
+      {Sonox.Discovery, nil}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
