@@ -1,6 +1,5 @@
 defmodule PlayerState do
-  @moduledoc """
-  """
+  @moduledoc false
 
   defstruct volume: nil,
             mute: nil,

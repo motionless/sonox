@@ -1,4 +1,5 @@
 defmodule Sonox.SonosDevice do
+  @moduledoc false
   defstruct ip: nil,
             model: nil,
             uuid: nil,

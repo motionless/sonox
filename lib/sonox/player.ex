@@ -47,7 +47,7 @@ defmodule Sonox.Player do
   end
 
   def group(%SonosDevice{} = device, :join, coordinator_name) do
-    coordinator = Sonex.Discovery.playerByName(coordinator_name)
+    coordinator = Sonox.Discovery.player_by_name(coordinator_name)
 
     args = [
       ["InstanceID", 0],
@@ -82,14 +82,14 @@ defmodule Sonox.Player do
     %{device | volume: volume}
   end
 
-  defp refresh_zones({:ok, response_body}) do
-    Sonox.Discovery.discover()
-    {:ok, response_body}
-  end
+  # defp refresh_zones({:ok, response_body}) do
+  #   Sonox.Discovery.discover()
+  #   {:ok, response_body}
+  # end
 
-  defp refresh_zones({:error, err_msg}) do
-    {:error, err_msg}
-  end
+  # defp refresh_zones({:error, err_msg}) do
+  #   {:error, err_msg}
+  # end
 
   def group(%SonosDevice{} = player) do
     player

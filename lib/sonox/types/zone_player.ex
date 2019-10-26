@@ -1,6 +1,5 @@
 defmodule Sonox.ZonePlayer do
-  @moduledoc """
-  """
+  @moduledoc false
 
   defstruct id: nil,
             name: nil,

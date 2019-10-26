@@ -55,7 +55,7 @@ defmodule Sonox.Discovery do
     |> get_ip_address()
   end
 
-  defp get_ip_address(name \\ nil) do
+  defp get_ip_address(name) do
     get_ifaddrs()
     |> filter_broadcast
     |> filter_by_name(name)
@@ -144,20 +144,27 @@ defmodule Sonox.Discovery do
     end
   end
 
-  defp build(id, ip, coord_id, {name, icon, config}) do
-    new_player = %Sonox.ZonePlayer{}
+  # defp build(id, ip, coord_id, {name, icon, config}) do
+  #   new_player = %Sonox.ZonePlayer{}
 
-    %Sonox.ZonePlayer{
-      new_player
-      | id: id,
-        name: name,
-        coordinator_id: coord_id,
-        info: %{new_player.info | ip: ip, icon: icon, config: config}
-    }
-  end
+  #   %Sonox.ZonePlayer{
+  #     new_player
+  #     | id: id,
+  #       name: name,
+  #       coordinator_id: coord_id,
+  #       info: %{new_player.info | ip: ip, icon: icon, config: config}
+  #   }
+  # end
 
   def player_by_name(name) do
     GenServer.call(__MODULE__, {:player_by_name, name})
+  end
+
+  @doc """
+  Retuns a list of all Sonos Device Structs discovered on the LAN
+  """
+  def players() do
+    GenServer.call(__MODULE__, :players)
   end
 
   def list_player() do
@@ -170,6 +177,10 @@ defmodule Sonox.Discovery do
       |> Enum.map(fn x -> x.name end)
 
     {:reply, res, state}
+  end
+
+  def handle_call(:players, _from, %Sonox.DiscoverState{} = state) do
+    {:reply, state.players, state}
   end
 
   def handle_call(
@@ -289,26 +300,27 @@ defmodule Sonox.Discovery do
     |> List.flatten()
   end
 
-  defp parse_upnp(ip, good_resp) do
-    split_resp = String.split(good_resp, "\r\n")
-    vers_model = Enum.fetch!(split_resp, 4)
+  # defp parse_upnp(ip, good_resp) do
+  #   split_resp = String.split(good_resp, "\r\n")
+  #   vers_model = Enum.fetch!(split_resp, 4)
 
-    if String.contains?(vers_model, "Sonos") do
-      ["SERVER:", "Linux", "UPnP/1.0", version, model_raw] = String.split(vers_model)
-      model = String.lstrip(model_raw, ?() |> String.rstrip(?))
-      "USN: uuid:" <> usn = Enum.fetch!(split_resp, 6)
-      uuid = String.split(usn, "::") |> Enum.at(0)
-      "X-RINCON-HOUSEHOLD: Sonos_" <> household = Enum.fetch!(split_resp, 7)
+  #   if String.contains?(vers_model, "Sonos") do
+  #     ["SERVER:", "Linux", "UPnP/1.0", version, model_raw] = String.split(vers_model)
+  #     model = String.trim_leading(model_raw, ?() |> String.trim_trailing(?))
 
-      %Sonox.SonosDevice{
-        ip: :inet.ntoa(ip),
-        version: version,
-        model: model,
-        uuid: uuid,
-        household: household
-      }
-    end
-  end
+  #     "USN: uuid:" <> usn = Enum.fetch!(split_resp, 6)
+  #     uuid = String.split(usn, "::") |> Enum.at(0)
+  #     "X-RINCON-HOUSEHOLD: Sonos_" <> household = Enum.fetch!(split_resp, 7)
+
+  #     %Sonox.SonosDevice{
+  #       ip: :inet.ntoa(ip),
+  #       version: version,
+  #       model: model,
+  #       uuid: uuid,
+  #       household: household
+  #     }
+  #   end
+  # end
 
   def zone_group_state(%Sonox.SonosDevice{} = player) do
     import SweetXml
