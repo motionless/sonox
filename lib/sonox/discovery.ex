@@ -55,7 +55,7 @@ defmodule Sonox.Discovery do
     |> get_ip_address()
   end
 
-  def get_ip_address(name \\ nil) do
+  defp get_ip_address(name \\ nil) do
     get_ifaddrs()
     |> filter_broadcast
     |> filter_by_name(name)
@@ -119,6 +119,10 @@ defmodule Sonox.Discovery do
           coordinator_uuid: zone_coordinator
       }
 
+      this_player =
+        this_player
+        |> Sonox.Player.audio(:volume)
+
       players_list = update_player_list(players_list, this_player)
 
       {:noreply,
@@ -154,6 +158,18 @@ defmodule Sonox.Discovery do
 
   def player_by_name(name) do
     GenServer.call(__MODULE__, {:player_by_name, name})
+  end
+
+  def list_player() do
+    GenServer.call(__MODULE__, :list_players)
+  end
+
+  def handle_call(:list_players, _from, %Sonox.DiscoverState{players: players_list} = state) do
+    res =
+      players_list
+      |> Enum.map(fn x -> x.name end)
+
+    {:reply, res, state}
   end
 
   def handle_call(
@@ -230,11 +246,11 @@ defmodule Sonox.Discovery do
     end
   end
 
-  def is_sonos(lines) do
+  defp is_sonos(lines) do
     lines |> Enum.filter(fn line -> String.contains?(line, "Sonos") end) |> Enum.count() > 0
   end
 
-  def get_device_household(lines) do
+  defp get_device_household(lines) do
     regex = ~r/X-RINCON-HOUSEHOLD: Sonos_(.*)/
 
     lines
@@ -242,7 +258,7 @@ defmodule Sonox.Discovery do
     |> List.first()
   end
 
-  def get_device_version(lines) do
+  defp get_device_version(lines) do
     regex = ~r/SERVER: Linux UPnP\/\d\.\d Sonos\/(.*?) .*/
 
     lines
@@ -250,7 +266,7 @@ defmodule Sonox.Discovery do
     |> List.first()
   end
 
-  def get_device_model(lines) do
+  defp get_device_model(lines) do
     regex = ~r/SERVER: Linux UPnP\/\d\.\d Sonos\/.*? \((.*)\)/
 
     lines
@@ -258,7 +274,7 @@ defmodule Sonox.Discovery do
     |> List.first()
   end
 
-  def get_device_uuid(lines) do
+  defp get_device_uuid(lines) do
     regex = ~r/USN: uuid:(.*?)::.*/
 
     lines
@@ -266,7 +282,7 @@ defmodule Sonox.Discovery do
     |> List.first()
   end
 
-  def get_capture_groups(lines, regex) do
+  defp get_capture_groups(lines, regex) do
     lines
     |> Enum.filter(fn line -> Regex.match?(regex, line) end)
     |> Enum.map(fn line -> Regex.run(regex, line, capture: :all_but_first) end)
@@ -292,5 +308,26 @@ defmodule Sonox.Discovery do
         household: household
       }
     end
+  end
+
+  def zone_group_state(%Sonox.SonosDevice{} = player) do
+    import SweetXml
+
+    {:ok, res} =
+      Sonox.SOAP.build(:zone, "GetZoneGroupState", [])
+      |> Sonox.SOAP.post(player)
+
+    xpath(res, ~x"//ZoneGroupState/text()"s)
+    |> xpath(~x"//ZoneGroups/ZoneGroup"l,
+      coordinator_uuid: ~x"//./@Coordinator"s,
+      members: [
+        ~x"//./ZoneGroup/ZoneGroupMember"el,
+        name: ~x"//./@ZoneName"s,
+        uuid: ~x"//./@UUID"s,
+        addr: ~x"//./@Location"s,
+        config: ~x"//./@Configuration"i,
+        icon: ~x"//./@Icon"s
+      ]
+    )
   end
 end

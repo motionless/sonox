@@ -62,15 +62,24 @@ defmodule Sonox.Player do
   def audio(%SonosDevice{} = device, :volume, level) when level > 0 and level < 100 do
     args = [["InstanceID", 0], ["Channel", "Master"], ["DesiredVolume", level]]
 
-    SOAP.build(:rendered, "SetVolume", args)
+    SOAP.build(:renderer, "SetVolume", args)
     |> SOAP.post(device)
+
+    device
+    |> audio(:volume)
   end
 
   def audio(%SonosDevice{} = device, :volume) do
     args = [["InstanceID", 0], ["Channel", "Master"]]
 
-    SOAP.build(:rendered, "GetVolume", args)
+    {:ok, response} = SOAP.build(:renderer, "GetVolume", args)
     |> SOAP.post(device)
+
+    volume = response
+    |> xpath(~x"//CurrentVolume/text()"s)
+    |> String.to_integer()
+
+    %{device | volume: volume}
   end
 
   defp refresh_zones({:ok, response_body}) do
@@ -86,7 +95,7 @@ defmodule Sonox.Player do
     player
     |> Sonox.Discovery.zone_group_state()
     |> Enum.filter(fn x ->
-      get_in(x, [:members]) |> Enum.find_value(fn x -> x.uuid == "RINCON_949F3E154D0E01400" end)
+      get_in(x, [:members]) |> Enum.find_value(fn x -> x.uuid == player.uuid end)
     end)
   end
 
@@ -98,24 +107,4 @@ defmodule Sonox.Player do
     |> Enum.count() > 1
   end
 
-  # def zone_group_state(%SonosDevice{} = player) do
-  #   import SweetXml
-
-  #   {:ok, res} =
-  #     Sonox.SOAP.build(:zone, "GetZoneGroupState", [])
-  #     |> Sonox.SOAP.post(player)
-
-  #   xpath(res, ~x"//ZoneGroupState/text()"s)
-  #   |> xpath(~x"//ZoneGroups/ZoneGroup"l,
-  #     coordinator_uuid: ~x"//./@Coordinator"s,
-  #     members: [
-  #       ~x"//./ZoneGroup/ZoneGroupMember"el,
-  #       name: ~x"//./@ZoneName"s,
-  #       uuid: ~x"//./@UUID"s,
-  #       addr: ~x"//./@Location"s,
-  #       config: ~x"//./@Configuration"i,
-  #       icon: ~x"//./@Icon"s
-  #     ]
-  #   )
-  # end
 end

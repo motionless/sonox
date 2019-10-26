@@ -8,7 +8,8 @@ defmodule Sonox.SonosDevice do
             icon: nil,
             version: nil,
             coordinator_uuid: nil,
-            coordinator_pid: nil
+            coordinator_pid: nil,
+            volume: nil
 
   @type t :: %__MODULE__{
           ip: String.t(),
@@ -20,6 +21,7 @@ defmodule Sonox.SonosDevice do
           icon: String.t(),
           version: String.t(),
           coordinator_uuid: String.t(),
-          coordinator_pid: reference
+          coordinator_pid: reference,
+          volume: Integer.t()
         }
 end
